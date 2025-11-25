@@ -1,122 +1,122 @@
-# RAG HF Demo – Sistema de Perguntas e Respostas com Hugging Face e RAG
+# RAG HF Demo – Retrieval-Augmented QA with Hugging Face
 
-## Descrição geral
-Este projeto é um protótipo profissional de um pipeline de Retrieval-Augmented Generation (RAG) em Python. Ele ingere documentos locais (PDF, TXT, MD, CSV), cria chunks, gera embeddings, indexa em um vector store FAISS e utiliza um modelo de linguagem hospedado no Hugging Face para responder perguntas com base nesses documentos. Inclui uma CLI e uma API FastAPI simples para consultas.
+## Overview
+This project is a professional-grade prototype of a Retrieval-Augmented Generation (RAG) pipeline in Python. It ingests local documents (PDF, TXT, MD, CSV), chunks them, generates embeddings, indexes them in a local vector store (numpy-based), and uses a Hugging Face model to answer questions grounded in those documents. It includes a CLI and a simple FastAPI for querying.
 
-## Arquitetura do sistema
-Fluxo em alto nível:
+## System architecture
+High-level flow:
 ```
-Ingestão → Chunking → Embeddings → Vector Store (numpy) → Retrieval → Prompt de Contexto → LLM (HF) → Resposta
+Ingestion → Chunking → Embeddings → Vector Store (numpy) → Retrieval → Context Prompt → HF LLM → Answer
 ```
-- **Ingestão:** `pypdf` para PDFs, leitura direta para textos. Limpeza básica de quebras de linha e espaços.
-- **Chunking:** Divisão em blocos configuráveis (`CHUNK_SIZE`, `CHUNK_OVERLAP`) para preservar contexto.
-- **Embeddings:** `sentence-transformers` (por padrão `sentence-transformers/all-MiniLM-L6-v2`) com normalização para similaridade de cosseno.
-- **Vector store:** matriz de embeddings em disco (`embeddings.npy`) + busca por produto interno (cosine) com `numpy`.
-- **Retrieval:** Busca dos `top_k` chunks mais relevantes.
-- **Prompt:** Contexto concatenado + instrução para restringir a resposta ao conteúdo encontrado.
-- **LLM HF:** Modelo definido em `HF_MODEL_NAME`, acessado via Inference API (padrão) ou carregado localmente via `transformers`.
+- **Ingestion:** `pypdf` for PDFs; direct reads for text files. Basic cleanup of newlines and spaces.
+- **Chunking:** Configurable blocks (`CHUNK_SIZE`, `CHUNK_OVERLAP`) to preserve context.
+- **Embeddings:** `sentence-transformers` (default `sentence-transformers/all-MiniLM-L6-v2`) with normalization for cosine similarity.
+- **Vector store:** Embeddings matrix on disk (`embeddings.npy`) + cosine search via numpy.
+- **Retrieval:** Fetch top_k most relevant chunks.
+- **Prompt:** Concatenate context + instruction to restrict the answer to retrieved text.
+- **HF LLM:** Model defined in `HF_MODEL_NAME`, accessed via the Hugging Face Inference API (default) or loaded locally via `transformers`.
 
-## Tecnologias utilizadas
+## Technologies
 - Python 3.10+
 - Hugging Face Transformers / Inference Client
-- Sentence Transformers (modelo de embeddings)
-- Numpy (vector store local simplificado)
-- FastAPI + Uvicorn (API HTTP opcional)
+- Sentence Transformers (embedding model)
+- Numpy (lightweight vector store)
+- FastAPI + Uvicorn (optional HTTP API)
 - pypdf, python-dotenv, tqdm
 
-## Estrutura do repositório
-- `src/main.py`: CLI e servidor FastAPI.
-- `src/rag_pipeline.py`: Pipeline completo (ingestão, embeddings, FAISS, geração com HF).
-- `src/ingestion.py`: Leitura, limpeza e chunking de documentos.
-- `src/config.py`: Carregamento de variáveis de ambiente/configuração.
-- `src/utils.py`: Utilidades (prompt, JSONL, diretórios).
-- `data/raw/`: Coloque aqui os arquivos de entrada.
-- `data/processed/`: Espaço reservado para saídas intermediárias (não obrigatório neste protótipo).
-- `models/`: Armazena `embeddings.npy` e `metadata.pkl`.
-- `requirements.txt`: Dependências do projeto.
-- `.env.example`: Exemplo de configuração (copie para `.env`).
+## Repository structure
+- `src/main.py`: CLI and FastAPI server.
+- `src/rag_pipeline.py`: Full pipeline (ingestion, embeddings, vector store, HF generation).
+- `src/ingestion.py`: Reading, cleaning, and chunking documents.
+- `src/config.py`: Environment/config loading.
+- `src/utils.py`: Utilities (prompt, JSONL, directories).
+- `data/raw/`: Put input files here.
+- `data/processed/`: Reserved for intermediate outputs (not required in this prototype).
+- `models/`: Stores `embeddings.npy` and `metadata.pkl`.
+- `requirements.txt`: Project dependencies.
+- `.env.example`: Example configuration (copy to `.env`).
 
-## Como rodar o projeto
-### 1) Pré-requisitos
-- Python 3.10+ e `pip`
-- Token do Hugging Face (para Inference API ou para baixar modelos privados)
+## Running the project
+### 1) Prerequisites
+- Python 3.10+ and `pip`
+- Hugging Face token (for Inference API or to download private models)
 
-### 2) Instalação
+### 2) Install
 ```bash
 pip install -r requirements.txt
 ```
 
-### 3) Configuração do `.env`
-Copie o arquivo de exemplo e preencha:
+### 3) Configure `.env`
+Copy the example and fill it out:
 ```bash
 cp .env.example .env
 ```
-Variáveis principais:
-- `HF_TOKEN`: seu token do Hugging Face (https://huggingface.co/settings/tokens).
-- `HF_MODEL_NAME`: modelo de linguagem (ex.: `mistralai/Mistral-7B-Instruct-v0.2`).
-- `EMBEDDING_MODEL`: modelo de embedding (ex.: `sentence-transformers/all-MiniLM-L6-v2`).
-- `USE_INFERENCE_API`: `true` para usar a Inference API (padrão, via router.huggingface.co), `false` para carregar o modelo localmente via `transformers`.
-- `HF_API_URL`: deixe vazio para usar o roteador padrão; se precisar, forneça um endpoint completo ou id de modelo alternativo.
-- `DEVICE`: `cpu`, `cuda` ou `mps` (Apple Silicon).
-- `CHUNK_SIZE`, `CHUNK_OVERLAP`, `TOP_K`: parâmetros de chunking e busca.
-Observação: alguns provedores expõem certos modelos apenas como chat (`chat_completion`). Se encontrar erro de task não suportada, troque o modelo por um com `text-generation` (ex.: `HuggingFaceH4/zephyr-7b-beta`, `meta-llama/Meta-Llama-3-8B-Instruct`) ou mantenha e deixe o fallback para `chat_completion`.
+Key variables:
+- `HF_TOKEN`: your Hugging Face token (https://huggingface.co/settings/tokens).
+- `HF_MODEL_NAME`: language model (e.g., `mistralai/Mistral-7B-Instruct-v0.2`).
+- `EMBEDDING_MODEL`: embedding model (e.g., `sentence-transformers/all-MiniLM-L6-v2`).
+- `USE_INFERENCE_API`: `true` to use the Inference API (default, via router.huggingface.co); `false` to load locally with `transformers`.
+- `HF_API_URL`: leave empty to use the default router; set only if you need a custom endpoint or alternative model id.
+- `DEVICE`: `cpu`, `cuda`, or `mps` (Apple Silicon).
+- `CHUNK_SIZE`, `CHUNK_OVERLAP`, `TOP_K`: chunking and retrieval params.
+Note: some providers expose certain models only as chat (`chat_completion`). If you see “task not supported”, switch to a model supporting `text-generation` (e.g., `HuggingFaceH4/zephyr-7b-beta`, `meta-llama/Meta-Llama-3-8B-Instruct`) or rely on the fallback to `chat_completion`.
 
-### 4) Ingestão e indexação
-Coloque documentos em `data/raw/` e execute:
+### 4) Ingest and index
+Place documents in `data/raw/` and run:
 ```bash
 python src/main.py ingest
 ```
-Opcional: apontar outro diretório de entrada:
+Optional: point to another input directory:
 ```bash
-python src/main.py ingest --input /caminho/para/docs
+python src/main.py ingest --input /path/to/docs
 ```
 
-### 5) Fazer perguntas (CLI)
+### 5) Ask questions (CLI)
 ```bash
-python src/main.py query --question "Qual é o tema principal dos documentos?"
+python src/main.py query --question "What is the main topic of the documents?"
 ```
-Saída exibirá a resposta e os chunks utilizados.
+The output shows the answer and the retrieved chunks.
 
-### 6) Subir a API (FastAPI)
+### 6) Run the API (FastAPI)
 ```bash
 python src/main.py api --host 0.0.0.0 --port 8000
 ```
-Chamada exemplo com `curl`:
+Example `curl` call:
 ```bash
 curl -X POST http://localhost:8000/query \
   -H "Content-Type: application/json" \
-  -d '{"question": "Qual é o conteúdo principal?", "top_k": 3}'
+  -d '{"question": "What is the main content?", "top_k": 3}'
 ```
-Retorno: JSON com `answer` e `context`.
+Returns JSON with `answer` and `context`.
 
-## Como adicionar novos documentos ao RAG
-1. Adicione os arquivos em `data/raw/` (ou outro diretório).
-2. Rode `python src/main.py ingest` para regerar embeddings e índice.
-3. Consulte via CLI/API. Para grandes volumes, considere chunk menor, `top_k` menor e monitorar memória.
+## Adding new documents to RAG
+1. Drop files in `data/raw/` (or another directory).
+2. Run `python src/main.py ingest` to rebuild embeddings and index.
+3. Query via CLI/API. For large corpora, consider smaller chunks, smaller `top_k`, and watch memory use.
 
-## Como trocar o modelo de linguagem e o modelo de embedding
-- Ajuste as variáveis no `.env` ou no ambiente:
-  - `HF_MODEL_NAME`: troque para outro modelo de instrução (menores são mais rápidos; maiores têm melhor qualidade, mas exigem mais RAM/VRAM).
-  - `EMBEDDING_MODEL`: altere para outro modelo do `sentence-transformers`. Modelos maiores geram embeddings mais ricos, porém mais lentos/pesados.
-- Considerações:
-  - **Latência/custo:** Inference API é prática, mas depende de rede e pode ter custo em modelos pagos.
-  - **Hardware:** Para carregar localmente, é preciso GPU/VRAM proporcional ao modelo. Em CPU a latência pode ser alta.
+## Switching LLM and embedding models
+- Update env vars:
+  - `HF_MODEL_NAME`: change to another instruction model (smaller = faster; larger = better quality, higher RAM/VRAM).
+  - `EMBEDDING_MODEL`: set another `sentence-transformers` model (larger models → richer embeddings, slower/heavier).
+- Considerations:
+  - **Latency/cost:** Inference API is convenient but depends on network and may incur costs for paid models.
+  - **Hardware:** Local loading requires sufficient GPU/VRAM; CPU works but can be slow.
 
-## Boas práticas e limitações
-- O modelo pode alucinar se o contexto não contiver a resposta; o prompt limita, mas não elimina o risco.
-- Qualidade depende da limpeza, chunking e cobertura dos documentos.
-- Ajustes úteis:
-  - `CHUNK_SIZE`/`CHUNK_OVERLAP`: chunks menores aumentam recall, mas podem fragmentar demais.
-  - `TOP_K`: aumentar pode trazer mais contexto relevante, porém com risco de ruído.
-  - Parâmetros do gerador: `temperature`, `max_new_tokens`.
-- Monitore logs e considere armazenar requisições/respostas para depuração.
+## Good practices and limitations
+- The model can hallucinate if context is weak; the prompt mitigates but doesn’t eliminate this.
+- Quality depends on cleaning, chunking, and document coverage.
+- Useful tuning:
+  - `CHUNK_SIZE`/`CHUNK_OVERLAP`: smaller chunks improve recall but may over-fragment.
+  - `TOP_K`: higher can bring more relevant context but also noise.
+  - Generation params: `temperature`, `max_new_tokens`.
+- Monitor logs; consider storing queries/responses for debugging.
 
-## Próximos passos / melhorias sugeridas
-- Autenticação/autorização na API.
-- Persistência do vector store mais robusta (versões, multi-tenant).
-- Separar coleções por namespace/dataset.
-- Avaliação de qualidade (feedback do usuário, métricas simples).
-- Cache de prompts/respostas e monitoramento de latência/custos.
+## Next steps / improvements
+- Authentication/authorization on the API.
+- More robust vector store persistence (versions, multi-tenant).
+- Namespace datasets for multiple collections.
+- Quality evaluation (user feedback, simple metrics).
+- Prompt/response caching and latency/cost monitoring.
 
-## Licença
-MIT License. Utilize e adapte livremente mantendo os avisos de licença.
+## License
+MIT License. Feel free to use and adapt with proper attribution.
