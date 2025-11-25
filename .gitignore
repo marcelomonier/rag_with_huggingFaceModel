@@ -1,0 +1,8 @@
+__pycache__/
+.pytest_cache/
+.env
+models/index.faiss
+models/metadata.pkl
+models/embeddings.npy
+data/processed/*
+*.pyc
